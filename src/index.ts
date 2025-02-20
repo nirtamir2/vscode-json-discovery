@@ -31,8 +31,22 @@ class JsonDiscoveryPanel {
       },
     )
 
-    const document = workspace.openTextDocument(uri)
-    this.panel.webview.html = fs.readFileSync(path.join(webviewDistPath, 'index.html'), 'utf-8')
+     workspace.openTextDocument(uri)
+    .then(document=> {
+      this.panel.webview.html = fs.readFileSync(path.join(webviewDistPath, 'sandbox.html'), 'utf-8') + 
+      `
+<script>
+discoveryLoader.start(${JSON.stringify({
+  type: 'file',
+  name: document.uri.fsPath,
+  createdAt: Date.now(),
+})})
+discoveryLoader.push(${JSON.stringify(document.getText())})
+discoveryLoader.finish()
+</script>
+      `
+    })
+    
   }
 
   dispose() {
