@@ -1,0 +1,3 @@
+[submodule "json-discovery"]
+	path = json-discovery
+	url = https://github.com/discoveryjs/JsonDiscovery
