@@ -49,7 +49,7 @@ await build({
     emptyOutDir: true,
     outDir: r('../res/webview'),
     rollupOptions: {
-      input: r('./sandbox.html'),
+      input: r('./index.html'),
     },
   },
 })

@@ -26,7 +26,8 @@
   "main": "./dist/index.js",
   "icon": "res/icon.png",
   "files": [
-    "dist"
+    "dist",
+    "res"
   ],
   "engines": {
     "vscode": "^1.97.0"
@@ -35,13 +36,15 @@
     "onStartupFinished"
   ],
   "contributes": {
-    "editor/title": [
-      {
-        "command": "json-discovery.show",
-        "when": "editorLangId == json",
-        "group": "navigation"
-      }
-    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "json-discovery.show",
+          "when": "editorLangId == json",
+          "group": "navigation"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "json-discovery.show",
@@ -53,8 +56,8 @@
     "configuration": []
   },
   "scripts": {
-    "build": "nr build:iframe && tsup src/index.ts --external vscode",
-    "build:iframe": "tsx scripts/generate.mts",
+    "build": "nr build:view && tsup src/index.ts --external vscode",
+    "build:view": "tsx scripts/build-view.mts",
     "dev": "nr build --watch",
     "lint": "eslint .",
     "update": "vscode-ext-gen",

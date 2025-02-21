@@ -37,14 +37,15 @@ class JsonDiscoveryPanel {
       },
     )
 
-    this.panel.onDidDispose(() => {
+    panel.onDidDispose(() => {
       this.panel = undefined
     })
 
     workspace.openTextDocument(this.uri)
       .then((document) => {
+        panel.title = `JSON Discovery - ${document.fileName}`
         panel.webview.html = [
-          fs.readFileSync(path.join(webviewDistPath, 'sandbox.html'), 'utf-8'),
+          fs.readFileSync(path.join(webviewDistPath, 'index.html'), 'utf-8'),
           `
 <script type="module">
 window.JSON_DISCOVERY_DATA = ${JSON.stringify(document.getText())}
