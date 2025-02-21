@@ -1,45 +1,61 @@
+import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
-import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { x } from 'tinyexec'
 import { build } from 'vite'
-import {viteSingleFile} from 'vite-plugin-singlefile'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
-await x('npm', ['run', 'build'], {
+const r = (path: string) => fileURLToPath(new URL(path, import.meta.url))
+
+await x('git', ['checkout', '.'], {
   nodeOptions: {
-    cwd: fileURLToPath(new URL('../json-discovery', import.meta.url)),
+    cwd: r('../json-discovery'),
   },
 })
 
-await fs.rm(fileURLToPath(new URL('../res/webview', import.meta.url)), { recursive: true, force: true })
+const patchContent = await fs.readFile(r('../json-discovery/src/discovery/index.js'), 'utf-8')
+const patched = patchContent.replace('discovery.nav.remove(\'index-page\');', 'discovery.nav.remove(\'index-page\');return discovery;')
+if (patchContent === patched)
+  throw new Error('Failed to patch json-discovery')
+await fs.writeFile(r('../json-discovery/src/discovery/index.js'), patched, 'utf-8')
 
-const styleInjectionRe = /{\s*type:\s*["']link["'],\s*href:\s*["']discovery.css["']\s*}/
+await x('npm', ['run', 'build'], {
+  nodeOptions: {
+    cwd: r('../json-discovery'),
+  },
+})
+
+await fs.rm(r('../res/webview'), { recursive: true, force: true })
+
+const styleInjectionRe = /\{\s*type:\s*["']link["'],\s*href:\s*["']discovery\.css["']\s*\}/
+const discoveryCSS = await fs.readFile(r('../json-discovery/build-chrome/discovery.css'), 'utf-8')
+const cssDataUrl = `data:text/css;base64,${Buffer.from(discoveryCSS).toString('base64')}`
 
 await build({
-  root: fileURLToPath(new URL('..', import.meta.url)),
-  
+  root: r('../scripts'),
   plugins: [
-    // {
-    //   name: 'remove-style-injection',
-    //   // transform(code) {
-    //   //   if (styleInjectionRe.test(code)) 
-    //   //     return code.replace(styleInjectionRe, '')
-    //   // } 
-    // },
+    {
+      name: 'inline-style-injection',
+      transform(code) {
+        if (styleInjectionRe.test(code))
+          return code.replace(styleInjectionRe, `{ type: "link", href: ${JSON.stringify(cssDataUrl)} }`)
+      },
+    },
     viteSingleFile(),
   ],
   build: {
     minify: false,
     cssMinify: true,
     emptyOutDir: true,
-    outDir: fileURLToPath(new URL('../res/webview', import.meta.url)),
+    outDir: r('../res/webview'),
     rollupOptions: {
-      input: fileURLToPath(new URL('./sandbox.html', import.meta.url)),
-    }
-  }
+      input: r('./sandbox.html'),
+    },
+  },
 })
 
-await fs.copyFile(
-  fileURLToPath(new URL('../json-discovery/build-chrome/discovery.css', import.meta.url)),
-  fileURLToPath(new URL('../res/webview/scripts/discovery.css', import.meta.url)),
-)
+await x('git', ['checkout', '.'], {
+  nodeOptions: {
+    cwd: r('../json-discovery'),
+  },
+})

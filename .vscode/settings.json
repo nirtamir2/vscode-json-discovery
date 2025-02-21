@@ -10,6 +10,11 @@
         "match": "scripts/generate.mts",
         "isAsync": true,
         "cmd": "npm run build:iframe"
+      },
+      {
+        "match": "scripts/sandbox.html",
+        "isAsync": true,
+        "cmd": "npm run build:iframe"
       }
     ]
   },

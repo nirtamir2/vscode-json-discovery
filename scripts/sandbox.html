@@ -1,35 +1,82 @@
 <!doctype html>
 <html>
 <style>
-    html,
-    body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        border: none;
-        -webkit-text-size-adjust: 100%;
-        background: transparent;
-    }
-    .discovery {
-        height: 100vh;
-        width: 100vw;
-    }
-</style>
-<body>
-    <script type="module">
-        import { initDiscovery } from '../json-discovery/build-chrome/discovery.js';
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    -webkit-text-size-adjust: 100%;
+    background: transparent;
+  }
 
-        const discovery = initDiscovery();
-        
-        const content = '{ "key": "value" }';
-        discovery.action.define('getRaw', () => ({
-            firstSliceText: content,
-            firstSliceSize: content.length,
-            fullSize: content.length
-        }));
-        discovery.action.define('getRawFull', () => ({
-            json: content
-        }))
-    </script>
+  .discovery {
+    height: 100vh;
+    width: 100vw;
+  }
+</style>
+
+<body>
+  <script>
+    window.JSON_DISCOVERY_DATA = ''
+
+    let hostId = null
+    window.JSON_DISCOVERY_SEND = () => {
+      if (!window.JSON_DISCOVERY_DATA || !hostId)
+        return
+      let acceptToken = 'foo'
+      window.postMessage({
+        id: hostId,
+        from: 'discoveryjs-app',
+        type: 'startChunkedDataUpload',
+        payload: {
+          acceptToken
+        }
+      }, '*');
+      window.postMessage({
+        id: hostId,
+        from: 'discoveryjs-app',
+        type: 'dataChunk',
+        payload: {
+          acceptToken,
+          value: window.JSON_DISCOVERY_DATA,
+          done: true
+        }
+      }, '*');
+    }
+
+    // Trick Discory for force enable in-page communication
+    window.parent = {
+      postMessage: (message) => {
+        switch (message.type) {
+          case 'ready': {
+            hostId = message.id
+            window.JSON_DISCOVERY_SEND()
+          }
+        }
+        // console.log('discovery message', message)
+      }
+    }
+  </script>
+  <script type="module">
+    import { initDiscovery } from '../json-discovery/build-chrome/discovery.js';
+
+    const discovery = initDiscovery();
+    discovery.action.define('getRaw', () => ({
+      firstSliceText: window.JSON_DISCOVERY_DATA,
+      firstSliceSize: window.JSON_DISCOVERY_DATA.length,
+      fullSize: window.JSON_DISCOVERY_DATA.length
+    }));
+    discovery.action.define('getRawFull', () => ({
+      json: window.JSON_DISCOVERY_DATA
+    }))
+    discovery.action.define('getSettings', () => ({
+      expandLevel: 3,
+      darkmode: 'auto',
+      whatsnew: {}
+    }))
+  </script>
 </body>
+
 </html>

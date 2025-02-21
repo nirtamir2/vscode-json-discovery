@@ -10,7 +10,7 @@ const webviewDistPath = fileURLToPath(new URL('../res/webview', import.meta.url)
 const _panelsRegistry = new Map<string, JsonDiscoveryPanel>()
 
 class JsonDiscoveryPanel {
-  panel: WebviewPanel
+  panel: WebviewPanel | undefined
   uri: Uri
 
   static get(uri: Uri) {
@@ -21,7 +21,13 @@ class JsonDiscoveryPanel {
 
   private constructor(uri: Uri) {
     this.uri = uri
-    this.panel = window.createWebviewPanel(
+  }
+
+  ensurePanel() {
+    if (this.panel)
+      return this.panel
+
+    const panel = this.panel = window.createWebviewPanel(
       'json-discovery.viewer',
       'JSON Discovery',
       ViewColumn.One, // Editor column to show the new webview panel in.
@@ -31,31 +37,33 @@ class JsonDiscoveryPanel {
       },
     )
 
-     workspace.openTextDocument(uri)
-    .then(document=> {
-      this.panel.webview.html = fs.readFileSync(path.join(webviewDistPath, 'sandbox.html'), 'utf-8') + 
-      `
-<script>
-discoveryLoader.start(${JSON.stringify({
-  type: 'file',
-  name: document.uri.fsPath,
-  createdAt: Date.now(),
-})})
-discoveryLoader.push(${JSON.stringify(document.getText())})
-discoveryLoader.finish()
-</script>
-      `
+    this.panel.onDidDispose(() => {
+      this.panel = undefined
     })
-    
+
+    workspace.openTextDocument(this.uri)
+      .then((document) => {
+        panel.webview.html = [
+          fs.readFileSync(path.join(webviewDistPath, 'sandbox.html'), 'utf-8'),
+          `
+<script type="module">
+window.JSON_DISCOVERY_DATA = ${JSON.stringify(document.getText())}
+window.JSON_DISCOVERY_SEND?.()
+</script>
+`,
+        ].join('\n')
+      })
+
+    return panel
   }
 
   dispose() {
-    this.panel.dispose()
+    this.panel?.dispose()
     _panelsRegistry.delete(this.uri.fsPath)
   }
 
   reveal() {
-    this.panel.reveal()
+    this.ensurePanel().reveal()
   }
 }
 
