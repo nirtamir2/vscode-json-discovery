@@ -2,6 +2,8 @@
 
 <a href="https://marketplace.visualstudio.com/items?itemName=antfu.json-discovery" target="__blank"><img src="https://img.shields.io/visual-studio-marketplace/v/antfu.json-discovery.svg?color=eee&amp;label=VS%20Code%20Marketplace&logo=visual-studio-code" alt="Visual Studio Marketplace Version" /></a>
 
+VS Code integration for [JsonDiscovery](https://github.com/discoveryjs/JsonDiscovery) to inspect JSON files.
+
 ## Sponsors
 
 <p align="center">
