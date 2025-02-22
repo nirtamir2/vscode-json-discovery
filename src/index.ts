@@ -37,25 +37,36 @@ class JsonDiscoveryPanel {
       },
     )
 
+    panel.webview.html = fs.readFileSync(path.join(webviewDistPath, 'index.html'), 'utf-8')
+
     panel.onDidDispose(() => {
       this.panel = undefined
     })
 
-    workspace.openTextDocument(this.uri)
-      .then((document) => {
-        panel.title = `JSON Discovery - ${document.fileName}`
-        panel.webview.html = [
-          fs.readFileSync(path.join(webviewDistPath, 'index.html'), 'utf-8'),
-          `
-<script type="module">
-window.JSON_DISCOVERY_DATA = ${JSON.stringify(document.getText())}
-window.JSON_DISCOVERY_SEND?.()
-</script>
-`,
-        ].join('\n')
-      })
-
     return panel
+  }
+
+  async postData() {
+    if (!this.panel)
+      return
+
+    const document = await workspace.openTextDocument(this.uri)
+    this.panel.title = `JSON Discovery - ${document.fileName}`
+
+    if (!this.panel.visible) {
+      await new Promise((resolve) => {
+        this.panel!.onDidChangeViewState((e) => {
+          if (e.webviewPanel.visible)
+            resolve(true)
+        })
+      })
+    }
+
+    this.panel.webview.postMessage({
+      from: 'vscode-host',
+      type: 'data',
+      data: document.getText(),
+    })
   }
 
   dispose() {
@@ -68,7 +79,7 @@ window.JSON_DISCOVERY_SEND?.()
   }
 }
 
-function show() {
+async function show() {
   const doc = window.activeTextEditor?.document
   const uri = doc?.uri
   if (!doc || !uri)
@@ -77,6 +88,7 @@ function show() {
     return
   const panel = JsonDiscoveryPanel.get(uri)
   panel?.reveal()
+  await panel?.postData()
 }
 
 export function activate(_ext: ExtensionContext) {

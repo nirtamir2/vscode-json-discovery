@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { x } from 'tinyexec'
 import { build } from 'vite'
@@ -13,11 +14,47 @@ await x('git', ['checkout', '.'], {
   },
 })
 
-const patchContent = await fs.readFile(r('../json-discovery/src/discovery/index.js'), 'utf-8')
-const patched = patchContent.replace('discovery.nav.remove(\'index-page\');', 'discovery.nav.remove(\'index-page\');return discovery;')
-if (patchContent === patched)
-  throw new Error('Failed to patch json-discovery')
-await fs.writeFile(r('../json-discovery/src/discovery/index.js'), patched, 'utf-8')
+async function patchFile(file: string, regex: RegExp | string, replacement: (match: string) => string) {
+  const input = await fs.readFile(file, 'utf-8')
+  const output = input.replaceAll(regex, replacement)
+  if (input === output)
+    throw new Error(`Failed to patch ${file}`)
+  await fs.writeFile(file, output, 'utf-8')
+}
+
+await patchFile(
+  r('../json-discovery/src/discovery/index.js'),
+  'discovery.nav.remove(\'index-page\');',
+  match => `${match}\nreturn discovery;`,
+)
+
+await patchFile(
+  r('../json-discovery/src/discovery/navbar.js'),
+  `
+    host.nav.prepend({
+        when: '#.page != "whatsnew"',
+        data: '"hasNews".callAction()',
+        whenData: true,
+        content: 'text:"What\\'s new"',
+        onClick: () => {
+            host.setPage('whatsnew');
+        }
+    });`.trimStart(),
+  () => '',
+)
+
+await patchFile(
+  r('../json-discovery/src/discovery/navbar.js'),
+  `
+    host.nav.menu.append({
+        content: 'text:"What\\'s new"',
+        onClick(_, { hide }) {
+            hide();
+            host.setPage('whatsnew');
+        }
+    });`.trimStart(),
+  () => '',
+)
 
 await x('npm', ['run', 'build'], {
   nodeOptions: {

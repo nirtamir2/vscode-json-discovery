@@ -19,12 +19,16 @@
 
 <body>
   <script>
-    window.JSON_DISCOVERY_DATA = ''
-
+    let hostDataResolve = null
     let hostId = null
-    window.JSON_DISCOVERY_SEND = () => {
-      if (!window.JSON_DISCOVERY_DATA || !hostId)
-        return
+    window.JSON_DISCOVERY_DATA = ''
+    async function sendData(data) {
+      window.JSON_DISCOVERY_DATA = data
+      if (!hostId) {
+        hostDataResolve = new Promise((resolve) => {
+          hostDataResolve = resolve
+        })
+      }
       let acceptToken = 'foo'
       window.postMessage({
         id: hostId,
@@ -40,11 +44,16 @@
         type: 'dataChunk',
         payload: {
           acceptToken,
-          value: window.JSON_DISCOVERY_DATA,
+          value: data,
           done: true
         }
       }, '*');
     }
+
+    window.addEventListener('message', (event) => {
+      if (event.data.from === 'vscode-host') 
+        sendData(event.data.data)
+    });
 
     // Trick Discory for force enable in-page communication
     window.parent = {
@@ -52,7 +61,7 @@
         switch (message.type) {
           case 'ready': {
             hostId = message.id
-            window.JSON_DISCOVERY_SEND()
+            hostDataResolve?.()
           }
         }
         // console.log('discovery message', message)
@@ -76,6 +85,9 @@
       darkmode: 'auto',
       whatsnew: {}
     }))
+    discovery.action.define('copyToClipboard', () => {
+      navigator.clipboard.writeText(window.JSON_DISCOVERY_DATA)
+    })
   </script>
 </body>
 
