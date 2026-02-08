@@ -5,7 +5,7 @@
   "version": "0.1.1",
   "private": true,
   "packageManager": "pnpm@10.4.1",
-  "description": "JSON Discovery for opening .cpuprofile files in VS Code.",
+  "description": "VS Code integration for JsonDiscovery to inspect JSON files.",
   "author": "Anthony Fu <anthonyfu117@hotmail.com>",
   "license": "MIT",
   "funding": "https://github.com/sponsors/antfu",
