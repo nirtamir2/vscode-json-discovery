@@ -6,7 +6,7 @@ export const publisher = "antfu"
 export const name = "json-discovery"
 export const version = "0.1.1"
 export const displayName = "JSON Discovery"
-export const description = "JSON Discovery for opening .cpuprofile files in VS Code."
+export const description = "VS Code integration for JsonDiscovery to inspect JSON files."
 export const extensionId = `${publisher}.${name}`
 
 /**
